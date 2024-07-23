@@ -223,6 +223,9 @@ class RoomService {
 		return true;
 	}
 
+	/**
+	 * @psalm-param Webinary::SIP_* $newSipEnabled
+	 */
 	public function setSIPEnabled(Room $room, int $newSipEnabled): bool {
 		$oldSipEnabled = $room->getSIPEnabled();
 
