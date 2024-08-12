@@ -7,8 +7,15 @@
 	<NcAppSettingsDialog :open.sync="showSettings"
 		:name="t('spreed', 'Talk settings')"
 		:show-navigation="true"
-		first-selected-section="keyboard shortcuts"
 		:container="container">
+		<!-- Custom settings sections registered via OCA.Talk -->
+		<NcAppSettingsSection v-for="{ id, name, element } in additionalSettingsSections"
+			:id="id"
+			:key="id"
+			:name="name">
+			<component :is="element" />
+		</NcAppSettingsSection>
+
 		<NcAppSettingsSection id="devices"
 			:name="t('spreed', 'Choose devices')"
 			class="app-settings-section">
@@ -185,6 +192,7 @@ import NcCheckboxRadioSwitch from '@nextcloud/vue/dist/Components/NcCheckboxRadi
 
 import MediaDevicesPreview from './MediaDevicesPreview.vue'
 
+import { useSettingsDialog } from '../../composables/useSettingsDialog.ts'
 import { PRIVACY } from '../../constants.js'
 import BrowserStorage from '../../services/BrowserStorage.js'
 import { getTalkConfig } from '../../services/CapabilitiesManager.ts'
@@ -207,8 +215,10 @@ export default {
 
 	setup() {
 		const settingsStore = useSettingsStore()
+		const { additionalSettingsSections } = useSettingsDialog()
 
 		return {
+			additionalSettingsSections,
 			settingsStore,
 			supportTypingStatus,
 			isBackgroundBlurred,

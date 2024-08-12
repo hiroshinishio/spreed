@@ -17,6 +17,7 @@ import { options as TooltipOptions } from '@nextcloud/vue/dist/Directives/Toolti
 
 import App from './App.vue'
 
+import { registerSettingsSection, unregisterSettingsSection } from './composables/useSettingsDialog.ts'
 import './init.js'
 import router from './router/router.js'
 import store from './store/index.js'
@@ -155,5 +156,9 @@ if (!window.OCA.Talk) {
 	window.OCA.Talk = {}
 }
 OCA.Talk.instance = instance
+OCA.Talk.Settings = {
+	registerSettingsSection,
+	unregisterSettingsSection,
+}
 
 export default instance
