@@ -373,7 +373,7 @@ import {
 import { hasTalkFeature } from '../../../services/CapabilitiesManager.ts'
 import { formattedTime } from '../../../utils/formattedTime.ts'
 import { readableNumber } from '../../../utils/readableNumber.ts'
-import { getStatusMessage } from '../../../utils/userStatus.js'
+import { getStatusMessage } from '../../../utils/userStatus.ts'
 
 export default {
 	name: 'Participant',
@@ -553,7 +553,7 @@ export default {
 					: '💬 ' + t('spreed', '{time} talking time', { time: formattedTime(this.timeSpeaking, true) })
 			}
 
-			return getStatusMessage(this.participant)
+			return getStatusMessage(this.preloadedUserStatus)
 		},
 
 		statusTitle() {

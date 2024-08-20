@@ -133,7 +133,7 @@ import { AVATAR, CONVERSATION } from '../../constants.js'
 import BrowserStorage from '../../services/BrowserStorage.js'
 import { getTalkConfig } from '../../services/CapabilitiesManager.ts'
 import { useChatExtrasStore } from '../../stores/chatExtras.js'
-import { getStatusMessage } from '../../utils/userStatus.js'
+import { getStatusMessage } from '../../utils/userStatus.ts'
 import { localCallParticipantModel, localMediaModel } from '../../utils/webrtc/index.js'
 
 export default {
@@ -220,7 +220,11 @@ export default {
 		},
 
 		statusMessage() {
-			return getStatusMessage(this.conversation)
+			return getStatusMessage({
+				status: this.conversation.status || null,
+				message: this.conversation.statusMessage || null,
+				icon: this.conversation.statusIcon || null,
+			})
 		},
 
 		renderedDescription() {

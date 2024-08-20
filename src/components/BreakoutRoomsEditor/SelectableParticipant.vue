@@ -15,6 +15,7 @@
 			:source="participant.source || participant.actorType"
 			disable-menu
 			disable-tooltip
+			:preloaded-user-status="preloadedUserStatus"
 			show-user-status />
 
 		<span class="selectable-participant__content">
@@ -36,7 +37,7 @@ import IconCheck from 'vue-material-design-icons/Check.vue'
 
 import AvatarWrapper from '../AvatarWrapper/AvatarWrapper.vue'
 
-import { getStatusMessage } from '../../utils/userStatus.js'
+import { getStatusMessage } from '../../utils/userStatus.ts'
 
 export default {
 	name: 'SelectableParticipant',
@@ -73,8 +74,28 @@ export default {
 			},
 		},
 
+		preloadedUserStatus() {
+			if ('statusMessage' in this.participant) {
+				// We preloaded the status when via participants API
+				return {
+					status: this.participant.status || null,
+					message: this.participant.statusMessage || null,
+					icon: this.participant.statusIcon || null,
+				}
+			} else if ('status' in this.participant && typeof this.participant.status === 'object') {
+				// We preloaded the status when via search API
+				return {
+					status: this.participant.status.status || null,
+					message: this.participant.status.message || null,
+					icon: this.participant.status.icon || null,
+				}
+			} else {
+				return undefined
+			}
+		},
+
 		participantStatus() {
-			return getStatusMessage(this.participant)
+			return getStatusMessage(this.preloadedUserStatus)
 		},
 	},
 }
