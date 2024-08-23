@@ -102,8 +102,8 @@ const getters = {
 		return state.fileTemplatesInitialised
 	},
 
-	getFileTemplates: (state) => () => {
-		return state.fileTemplates
+	fileTemplates: (state) => {
+		return Object.values(state.fileTemplates)
 	},
 }
 
@@ -200,11 +200,12 @@ const mutations = {
 	},
 
 	storeFilesTemplates(state, { template }) {
-		state.fileTemplates.push(template)
+		const id = `${template.app}-${template.extension.replace('.', '')}`
+		Vue.set(state.fileTemplates, id, template)
 		state.fileTemplatesInitialised = true
 	},
 
-	markFileTemplatesInitialisedForGuests(state) {
+	markFileTemplatesInitialised(state) {
 		state.fileTemplatesInitialised = true
 	},
 }
@@ -547,9 +548,12 @@ const actions = {
 	},
 
 	async getFileTemplates({ commit, getters }) {
-		if (getters.getUserId() === null) {
-			console.debug('Skip file templates setup for participants that are not logged in')
-			commit('markFileTemplatesInitialisedForGuests')
+		if (getters.fileTemplates.length || getters.getUserId() === null) {
+			console.debug(getters.fileTemplates.length
+				? 'Skip file templates setup as already done'
+				: 'Skip file templates setup for participants that are not logged in'
+			)
+			commit('markFileTemplatesInitialised')
 			return
 		}
 
