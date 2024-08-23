@@ -6,20 +6,20 @@
 <template>
 	<label class="selectable-participant">
 		<input v-model="modelProxy"
-			:value="participant.attendeeId"
+			:value="value"
 			type="checkbox"
 			class="selectable-participant__checkbox">
 		<!-- Participant's avatar -->
-		<AvatarWrapper :id="participant.actorId"
-			:name="participant.displayName"
-			:source="participant.source || participant.actorType"
+		<AvatarWrapper :id="actorId"
+			:name="computedName"
+			:source="actorType"
 			disable-menu
 			disable-tooltip
-			show-user-status />
+			:show-user-status="showUserStatus" />
 
 		<span class="selectable-participant__content">
 			<span class="selectable-participant__content-name">
-				{{ participant.displayName }}
+				{{ computedName }}
 			</span>
 			<span v-if="participantStatus"
 				class="selectable-participant__content-subname">
@@ -32,6 +32,8 @@
 </template>
 
 <script>
+import { inject } from 'vue'
+
 import IconCheck from 'vue-material-design-icons/Check.vue'
 
 import AvatarWrapper from '../AvatarWrapper/AvatarWrapper.vue'
@@ -59,9 +61,23 @@ export default {
 			type: Array,
 			required: true,
 		},
+
+		showUserStatus: {
+			type: Boolean,
+			default: true,
+		},
 	},
 
-	emits: ['update:checked'],
+	emits: ['update:checked', 'click-participant'],
+
+	setup() {
+		// Toggles the bulk selection state of this component
+		const isSelectable = inject('bulkParticipantsSelection', false)
+
+		return {
+			isSelectable,
+		}
+	},
 
 	computed: {
 		modelProxy: {
@@ -69,8 +85,26 @@ export default {
 				return this.checked
 			},
 			set(value) {
-				this.$emit('update:checked', value)
+				this.isSelectable
+					? this.$emit('update:checked', value)
+					: this.$emit('click-participant', this.participant)
 			},
+		},
+
+		value() {
+			return this.participant.attendeeId || this.participant
+		},
+
+		actorId() {
+			return this.participant.actorId || this.participant.id
+		},
+
+		actorType() {
+			return this.participant.source || this.participant.actorType
+		},
+
+		computedName() {
+			return this.participant.displayName || this.participant.label
 		},
 
 		participantStatus() {
@@ -124,6 +158,7 @@ export default {
 		top: 0;
 		left: 0;
 		z-index: -1;
+		opacity: 0;
 	}
 
 	&__content {
