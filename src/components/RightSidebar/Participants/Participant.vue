@@ -7,23 +7,17 @@
 	<NcListItem :name="computedName"
 		:data-nav-id="participantNavigationId"
 		class="participant"
-		:class="{
-			'participant--offline': isOffline,
-			'participant--searched': isSearched }"
-		:active="isSelected"
+		:class="{ 'participant--offline': isOffline }"
 		:aria-label="participantAriaLabel"
 		:actions-aria-label="participantSettingsAriaLabel"
 		force-display-actions
-		force-menu
-		@click="handleClick"
-		@keydown.enter="handleClick">
+		force-menu>
 		<!-- Participant's avatar -->
 		<template #icon>
-			<AvatarWrapper :id="computedId"
-				:token="isSearched ? 'new' : token"
+			<AvatarWrapper :id="participant.actorId"
+				:token="token"
 				:name="computedName"
-				:source="participant.source || participant.actorType"
-				:disable-menu="isSearched"
+				:source="participant.actorType"
 				disable-tooltip
 				:show-user-status="showUserStatus"
 				:preloaded-user-status="preloadedUserStatus"
@@ -42,13 +36,9 @@
 			</span>
 		</template>
 
-		<template #subname>
+		<template v-if="statusMessage" #subname>
 			<!-- Second line: participant status message if applicable -->
-			<span v-if="isSearched && shareWithDisplayNameUnique" class="participant__status">
-				{{ shareWithDisplayNameUnique }}
-			</span>
-			<span v-else-if="statusMessage"
-				ref="statusMessage"
+			<span ref="statusMessage"
 				class="participant__status"
 				:class="{ 'participant__status--highlighted': isParticipantSpeaking }"
 				:title="statusTitle"
@@ -57,7 +47,7 @@
 			</span>
 		</template>
 
-		<template v-if="!isSearched" #extra-actions>
+		<template #extra-actions>
 			<!-- Phone participant dial action -->
 			<template v-if="isInCall && canBeModerated && isPhoneActor">
 				<NcButton v-if="!participant.inCall"
@@ -254,7 +244,7 @@
 				</NcActionButton>
 				<NcActionButton key="edit-permissions"
 					close-after-click
-					@click="showPermissionsEditor">
+					@click="permissionsEditor = true">
 					<template #icon>
 						<Pencil :size="20" />
 					</template>
@@ -283,7 +273,7 @@
 				close-after-click
 				:participant="participant"
 				:token="token"
-				@close="hidePermissionsEditor" />
+				@close="permissionsEditor = false" />
 
 			<!-- Confirmation required to remove participant -->
 			<NcDialog v-if="isRemoveDialogOpen"
@@ -319,8 +309,6 @@
 </template>
 
 <script>
-import { inject } from 'vue'
-
 import Account from 'vue-material-design-icons/Account.vue'
 import AccountMinusIcon from 'vue-material-design-icons/AccountMinus.vue'
 import AccountPlusIcon from 'vue-material-design-icons/AccountPlus.vue'
@@ -430,19 +418,9 @@ export default {
 		},
 	},
 
-	emits: ['click-participant'],
-
 	setup() {
-		const isInCall = useIsInCall()
-		const selectedParticipants = inject('selectedParticipants', [])
-
-		// Toggles the bulk selection state of this component
-		const isSelectable = inject('bulkParticipantsSelection', false)
-
 		return {
-			isInCall,
-			selectedParticipants,
-			isSelectable,
+			isInCall: useIsInCall(),
 		}
 	},
 
@@ -465,11 +443,7 @@ export default {
 		},
 
 		participantNavigationId() {
-			if (this.participant.actorType && this.participant.actorId) {
-				return this.participant.actorType + '_' + this.participant.actorId
-			} else {
-				return this.participant.source + '_' + this.participant.id
-			}
+			return this.participant.actorType + '_' + this.participant.actorId
 		},
 
 		participantSettingsAriaLabel() {
@@ -477,11 +451,7 @@ export default {
 		},
 
 		participantAriaLabel() {
-			if (this.isSearched) {
-				return t('spreed', 'Add participant "{user}"', { user: this.computedName })
-			} else {
-				return t('spreed', 'Participant "{user}"', { user: this.computedName })
-			}
+			return t('spreed', 'Participant "{user}"', { user: this.computedName })
 		},
 
 		userNameTitle() {
@@ -564,31 +534,6 @@ export default {
 			return this.statusMessage
 		},
 
-		/**
-		 * Check if the current participant belongs to the selected participants array
-		 * in the store
-		 *
-		 * @return {boolean}
-		 */
-		isSelected() {
-			return this.isSelectable
-				? this.selectedParticipants.some(selected => {
-					return selected.id === this.participant.id && selected.source === this.participant.source
-				})
-				: false
-		},
-
-		/**
-		 * If the Participant component is used as to display a search result, it will
-		 * return true. We use this not to display actions on the searched contacts and
-		 * groups.
-		 *
-		 * @return {boolean}
-		 */
-		isSearched() {
-			return this.participant.label !== undefined
-		},
-
 		isEmailActor() {
 			return this.participant.actorType === ATTENDEE.ACTOR_TYPE.EMAILS
 		},
@@ -619,39 +564,25 @@ export default {
 		},
 
 		computedName() {
-			if (!this.isSearched) {
-				const displayName = this.participant.displayName.trim()
+			const displayName = this.participant.displayName.trim()
 
-				if (displayName === '' && this.isGuest) {
-					return t('spreed', 'Guest')
-				}
-
-				if (displayName === '') {
-					return t('spreed', 'Deleted user')
-				}
-
-				return displayName
+			if (displayName === '' && this.isGuest) {
+				return t('spreed', 'Guest')
 			}
-			return this.participant.label
-		},
 
-		computedId() {
-			if (!this.isSearched) {
-				return this.participant.actorId
+			if (displayName === '') {
+				return t('spreed', 'Deleted user')
 			}
-			return this.participant.id
+
+			return displayName
 		},
 
 		attendeeId() {
 			return this.participant.attendeeId
 		},
 
-		shareWithDisplayNameUnique() {
-			return this.participant.shareWithDisplayNameUnique
-		},
-
 		isHandRaised() {
-			if (this.isSearched || this.participant.inCall === PARTICIPANT.CALL_FLAG.DISCONNECTED) {
+			if (this.participant.inCall === PARTICIPANT.CALL_FLAG.DISCONNECTED) {
 				return false
 			}
 
@@ -660,7 +591,7 @@ export default {
 		},
 
 		callIcon() {
-			if (this.isSearched || this.participant.inCall === PARTICIPANT.CALL_FLAG.DISCONNECTED) {
+			if (this.participant.inCall === PARTICIPANT.CALL_FLAG.DISCONNECTED) {
 				return null
 			} else if (this.isHandRaised) {
 				return { icon: HandBackLeft, size: 18, title: t('spreed', 'Raised their hand') }
@@ -727,11 +658,10 @@ export default {
 		/**
 		 * For now the user status is not overwriting the online-offline status anymore
 		 * It felt too weird having users appear as offline but they are in the call or chat actively
-		 * return this.participant.status === 'offline' ||  !this.sessionIds.length && !this.isSearched
+		 * return this.participant.status === 'offline' ||  !this.sessionIds.length
 		 */
 		isOffline() {
-			return !this.sessionIds.length && !this.isSearched
-				&& (this.isUserActor || this.isFederatedActor || this.isGuestActor)
+			return !this.sessionIds.length && (this.isUserActor || this.isFederatedActor || this.isGuestActor)
 				&& (hasTalkFeature(this.token, 'federation-v2') || !hasTalkFeature(this.token, 'federation-v1') || (!this.conversation.remoteServer && !this.isFederatedActor))
 		},
 
@@ -837,27 +767,15 @@ export default {
 		},
 
 		showParticipantActions() {
-			return !this.isSearched && (this.canBeModerated || this.canSendCallNotification)
+			return this.canBeModerated || this.canSendCallNotification
 		},
 
 		preloadedUserStatus() {
-			if (Object.prototype.hasOwnProperty.call(this.participant, 'statusMessage')) {
-				// We preloaded the status when via participants API
-				return {
-					status: this.participant.status || null,
-					message: this.participant.statusMessage || null,
-					icon: this.participant.statusIcon || null,
-				}
+			return {
+				status: this.participant.status || null,
+				message: this.participant.statusMessage || null,
+				icon: this.participant.statusIcon || null,
 			}
-			if (Object.prototype.hasOwnProperty.call(this.participant, 'status')) {
-				// We preloaded the status when via search API
-				return {
-					status: this.participant.status.status || null,
-					message: this.participant.status.message || null,
-					icon: this.participant.status.icon || null,
-				}
-			}
-			return undefined
 		},
 
 		attendeePermissions() {
@@ -902,6 +820,7 @@ export default {
 
 	methods: {
 		t,
+
 		formattedTime,
 
 		updateUserNameNeedsTitle() {
@@ -914,13 +833,6 @@ export default {
 			// check if ellipsized
 			const e = this.$refs.statusMessage
 			this.isStatusTitleVisible = (e && e.offsetWidth < e.scrollWidth)
-		},
-
-		// Used to allow selecting participants in a search.
-		handleClick() {
-			if (this.isSearched) {
-				this.$emit('click-participant', this.participant)
-			}
 		},
 
 		participantTypeIsModerator(participantType) {
@@ -1001,14 +913,6 @@ export default {
 			} catch (error) {
 				showError(t('spreed', 'Could not modify permissions for {displayName}', { displayName: this.computedName }))
 			}
-		},
-
-		showPermissionsEditor() {
-			this.permissionsEditor = true
-		},
-
-		hidePermissionsEditor() {
-			this.permissionsEditor = false
 		},
 
 		applyDefaultPermissions() {
@@ -1154,42 +1058,11 @@ export default {
 		.avatardiv .avatardiv__user-status {
 			right: -2px !important;
 			bottom: -2px !important;
-			min-height: 14px !important;
-			min-width: 14px !important;
-			line-height: 1 !important;
-			font-size: clamp(var(--font-size-small), 85%, var(--default-font-size)) !important;
 		}
 	}
 
 	&--offline &__user-name {
 		color: var(--color-text-maxcontrast);
-	}
-
-	&--searched :deep(.list-item),
-	&--searched :deep(.list-item a),
-	&--searched :deep(.list-item a *) {
-		cursor: pointer;
-	}
-
-	&.list-item__wrapper--active,
-	&.list-item__wrapper.active {
-		:deep(.list-item) {
-			background-color: var(--color-primary-element-light);
-
-			&:hover,
-			&:focus-within,
-			&:has(:focus-visible),
-			&:has(:active) {
-				background-color: var(--color-primary-element-light-hover);
-			}
-
-			.list-item-content__name,
-			.list-item-content__subname,
-			.list-item-content__details,
-			.list-item-details__details {
-				color: var(--color-primary-light-text) !important;
-			}
-		}
 	}
 
 	&__user-badge {

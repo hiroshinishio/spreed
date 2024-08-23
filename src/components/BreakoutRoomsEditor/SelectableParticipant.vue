@@ -4,17 +4,21 @@
 -->
 
 <template>
-	<label class="selectable-participant">
+	<label class="selectable-participant" :data-nav-id="participantNavigationId">
 		<input v-model="modelProxy"
 			:value="value"
+			:aria-label="participantAriaLabel"
 			type="checkbox"
-			class="selectable-participant__checkbox">
+			class="selectable-participant__checkbox"
+			@keydown.enter="handleEnter">
 		<!-- Participant's avatar -->
 		<AvatarWrapper :id="actorId"
+			token="new"
 			:name="computedName"
 			:source="actorType"
 			disable-menu
 			disable-tooltip
+			:preloaded-user-status="preloadedUserStatus"
 			:show-user-status="showUserStatus" />
 
 		<span class="selectable-participant__content">
@@ -35,6 +39,8 @@
 import { inject } from 'vue'
 
 import IconCheck from 'vue-material-design-icons/Check.vue'
+
+import { t } from '@nextcloud/l10n'
 
 import AvatarWrapper from '../AvatarWrapper/AvatarWrapper.vue'
 
@@ -107,10 +113,53 @@ export default {
 			return this.participant.displayName || this.participant.label
 		},
 
+		preloadedUserStatus() {
+			if (Object.prototype.hasOwnProperty.call(this.participant, 'statusMessage')) {
+				// We preloaded the status when via participants API
+				return {
+					status: this.participant.status || null,
+					message: this.participant.statusMessage || null,
+					icon: this.participant.statusIcon || null,
+				}
+			}
+			if (Object.prototype.hasOwnProperty.call(this.participant, 'status')) {
+				// We preloaded the status when via search API
+				return {
+					status: this.participant.status.status || null,
+					message: this.participant.status.message || null,
+					icon: this.participant.status.icon || null,
+				}
+			}
+			return undefined
+		},
+
 		participantStatus() {
+			if (this.participant.shareWithDisplayNameUnique) {
+				return this.participant.shareWithDisplayNameUnique
+			}
 			return getStatusMessage(this.participant)
 		},
+
+		participantAriaLabel() {
+			return t('spreed', 'Add participant "{user}"', { user: this.computedName })
+		},
+
+		participantNavigationId() {
+			if (this.participant.actorType && this.participant.actorId) {
+				return this.participant.actorType + '_' + this.participant.actorId
+			} else {
+				return this.participant.source + '_' + this.participant.id
+			}
+		},
 	},
+
+	methods: {
+		t,
+
+		handleEnter(event) {
+			event.target.checked = !event.target.checked
+		},
+	}
 }
 </script>
 
@@ -125,6 +174,10 @@ export default {
 	margin: var(--default-grid-baseline);
 	border-radius: var(--border-radius-element, 32px);
 	line-height: 20px;
+
+	&, & * {
+		cursor: pointer;
+	}
 
 	&:hover,
 	&:focus-within,
